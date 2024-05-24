@@ -1,0 +1,7 @@
+main_copy.txt
+problems.csv
+test.json
+*.exe
+quiz
+.env
+api.go
