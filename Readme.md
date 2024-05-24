@@ -84,9 +84,4 @@ Contributions are welcome! Please fork the repository and create a pull request 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details. -->
 
 ## Acknowledgements
-<!-- 
 - [QuizAPI](https://quizapi.io/) for providing the quiz questions API.
-
----
-
-Feel free to reach out if you have any questions or suggestions! Enjoy quizzing! -->
