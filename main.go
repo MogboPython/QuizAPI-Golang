@@ -5,10 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"time"
+
+	// "log"
 	"net/http"
 	"os"
 	"strconv"
 	"unicode"
+
+	// "github.com/charmbracelet/huh"
 
 	"github.com/joho/godotenv"
 )
@@ -41,33 +46,28 @@ func Config(key string) string {
 	return os.Getenv(key)
 }
 
+// TODO: Check if answer can take multiple values
 func main() {
-	api_key, category, difficulty, limit := read_arguments()
-	questions := get_questions(api_key, category, difficulty, limit)
-	score := begin_quiz(questions)
-	fmt.Printf("You scored %d out of %d.", score, limit)
+	api_key, category, difficulty, que_limit, time_limit := read_arguments()
+	questions := get_questions(api_key, category, difficulty, que_limit)
+	begin_quiz(questions, que_limit, time_limit)
 }
 
-// -a API_KEY [-c Category] [-d Difficulty]
-func read_arguments() (string, string, string, int) {
-	// TODO: Remove default default API Key
+func exit(msg string) {
+	fmt.Println(msg)
+	os.Exit(1)
+}
+
+// -a API_KEY [-c Category] [-d Difficulty] [-limit Questions] [-time Time]
+func read_arguments() (string, string, string, int, int) {
 	api_key := flag.String("a", Config("API_KEY"), "Your QuizAPI key")
 	category := flag.String("c", "", "Specify a category (Linux, DevOps, Networking, Programming, Cloud, Docker, Kubernetes)")
 	difficulty := flag.String("d", "", "Specify a difficulty (Easy, Medium, Hard)")
+	timer := flag.Int("time", 30, "Specify the time limit for the quiz in seconds")
 	limit := flag.Int("limit", 1, "Specify the number of questions")
+
 	flag.Parse()
-	return *api_key, *category, *difficulty, *limit
-}
-
-func begin_quiz(questions []QuizResponse) int {
-	total_score := 0
-
-	for _, question := range questions {
-		fmt.Println("Question: ", question.Question)
-		show_options(question.Answers)
-		total_score += check_answers_value(question.CorrectAnswers)
-	}
-	return total_score
+	return *api_key, *category, *difficulty, *limit, *timer
 }
 
 func get_questions(api_key string, category string, difficulty string, limit int) []QuizResponse {
@@ -119,23 +119,25 @@ func get_questions(api_key string, category string, difficulty string, limit int
 
 }
 
-func get_questions_struct(responseData []byte) []QuizResponse {
-	var questions []QuizResponse
-	err := json.Unmarshal(responseData, &questions)
+func begin_quiz(questions []QuizResponse, limit int, time_limit int) {
+	timer := time.NewTimer(time.Duration(time_limit) * time.Second)
+	total_score := 0
 
-	if err != nil {
-		var errorResponse ErrorResponse
-		err = json.Unmarshal([]byte(responseData), &errorResponse)
+	for _, question := range questions {
+		fmt.Println("Question: ", question.Question)
+		get_options(question.Answers)
+		score, err := check_answers_value(question.CorrectAnswers, timer)
+
 		if err != nil {
-			fmt.Println("Error:", err)
+			exit(fmt.Sprintf("You scored %d out of %d.", total_score, limit))
 		}
-
-		fmt.Println("Error:", errorResponse.Error)
+		total_score += score
 	}
-	return questions
+
+	exit(fmt.Sprintf("\nYou scored %d out of %d.", total_score, limit))
 }
 
-func show_options(answers map[string]string) {
+func get_options(answers map[string]string) {
 	println("Enter the correct option: ")
 
 	for r := 'a'; r < 'g'; r++ {
@@ -147,46 +149,29 @@ func show_options(answers map[string]string) {
 	}
 }
 
-func exit(msg string) {
-	fmt.Println(msg)
-	os.Exit(1)
-}
-
-func check_answers_value(correct_answers map[string]string) int {
-	var input string
+func check_answers_value(correct_answers map[string]string, timer *time.Timer) (int, error) {
+	answerCh := make(chan string)
 	fmt.Print("Pick an option: ")
-	_, err := fmt.Scanf("%s", &input)
-
-	if err != nil {
-		exit(fmt.Sprintf("Error reading input: %v", err))
-	}
-
-	if len(input) != 1 || !unicode.IsLetter(rune(input[0])) {
-		exit("Invalid input.")
-	}
-
-	// fmt.Printf("You entered: %c\n", input[0])
+	var input string
 	score := 0
-	key := fmt.Sprintf("answer_%c_correct", input[0])
-	if correct_answers[key] == "true" {
-		score = 1
+
+	go func() {
+		fmt.Scanf("%s", &input)
+		if len(input) != 1 || !unicode.IsLetter(rune(input[0])) {
+			exit("Invalid input.")
+		}
+		answerCh <- input
+	}()
+
+	select {
+	case <-timer.C:
+		return 0, fmt.Errorf("time's up")
+	case input := <-answerCh:
+		key := fmt.Sprintf("answer_%c_correct", input[0])
+		if correct_answers[key] == "true" {
+			score = 1
+		}
 	}
 
-	return score
-	// else if correct_answers[key] == "false" {
-	// 	fmt.Println("better luck next time")
-	// } else {
-	// 	fmt.Println("option not available")
-	// }
+	return score, nil
 }
-
-// func handleResponse(responseData string) []QuizResponse {
-// 	var response []QuizResponse
-
-// 	err := json.Unmarshal([]byte(responseData), &response)
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 	}
-
-// 	return response
-// }

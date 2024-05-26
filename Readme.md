@@ -47,41 +47,14 @@ go run main.go -a API_KEY [-c Category] [-d Difficulty] [-limit NumberOfQuestion
 - `-a`: Your QuizAPI key (required).
 - `-c`: Specify a category (optional). Valid options include: `Linux`, `DevOps`, `Networking`, `Programming`, `Cloud`, `Docker`, `Kubernetes`.
 - `-d`: Specify a difficulty level (optional). Valid options are: `Easy`, `Medium`, `Hard`.
-- `-limit`: Specify the number of questions (optional, default is 1).
+- `-limit`: Specify the number of questions (optional, default is 1, maximum of 20).
+- `-time`: Specify the time limit for the quiz in seconds (optional, default is 30).
 
 ### Example
 
 ```sh
 go run main.go -a your_api_key -c Programming -d Easy -limit 5
 ```
-
-<!-- ## Code Structure
-
-- **main.go**: The main file containing the entry point of the application and all function implementations.
-
-### Functions
-
-- `Config(key string) string`: Loads configuration from the `.env` file.
-- `main()`: The entry point of the application. Reads arguments, fetches questions, starts the quiz, and displays the score.
-- `read_arguments() (string, string, string, int)`: Reads command-line arguments.
-- `begin_quiz(questions []QuizResponse) int`: Starts the quiz and returns the user's score.
-- `get_questions(api_key string, category string, difficulty string, limit int) []QuizResponse`: Fetches quiz questions from QuizAPI.
-- `show_options(answers map[string]string)`: Displays answer options for a question.
-- `exit(msg string)`: Exits the application with a message.
-- `check_answers_value(correct_answers map[string]string) int`: Checks the user's answer and returns the score for the question.
-
-### Types
-
-- `QuizResponse`: Represents the structure of a quiz question response.
-- `ErrorResponse`: Represents the structure of an error response. -->
-
-<!-- ## Contributing
-
-Contributions are welcome! Please fork the repository and create a pull request with your changes. -->
-
-<!-- ## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details. -->
 
 ## Acknowledgements
 - [QuizAPI](https://quizapi.io/) for providing the quiz questions API.

@@ -1,6 +1,26 @@
 package main
 
-import "testing"
+import (
+	"encoding/json"
+	"fmt"
+	"testing"
+)
+
+func get_questions_struct(responseData []byte) []QuizResponse {
+	var questions []QuizResponse
+	err := json.Unmarshal(responseData, &questions)
+
+	if err != nil {
+		var errorResponse ErrorResponse
+		err = json.Unmarshal([]byte(responseData), &errorResponse)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		fmt.Println("Error:", errorResponse.Error)
+	}
+	return questions
+}
 
 func TestGetQuestionsStruct(t *testing.T) {
 	// Define test data
