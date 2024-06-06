@@ -7,13 +7,12 @@ import (
 	"io"
 	"time"
 
-	// "log"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"unicode"
 
-	// "github.com/charmbracelet/huh"
+	"github.com/charmbracelet/huh"
 
 	"github.com/joho/godotenv"
 )
@@ -47,6 +46,7 @@ func Config(key string) string {
 }
 
 // TODO: Check if answer can take multiple values
+// TODO: Add timer with Huh
 func main() {
 	api_key, category, difficulty, que_limit, time_limit := read_arguments()
 	questions := get_questions(api_key, category, difficulty, que_limit)
@@ -122,44 +122,72 @@ func get_questions(api_key string, category string, difficulty string, limit int
 func begin_quiz(questions []QuizResponse, limit int, time_limit int) {
 	timer := time.NewTimer(time.Duration(time_limit) * time.Second)
 	total_score := 0
+	_ = timer
+	var opt string
 
-	for _, question := range questions {
-		fmt.Println("Question: ", question.Question)
-		get_options(question.Answers)
-		score, err := check_answers_value(question.CorrectAnswers, timer)
+	formGroups := make([]*huh.Group, limit)
+	for i, question := range questions {
+		options_list := get_options(question.Answers)
+		options := make([]huh.Option[string], 0, len(options_list))
 
-		if err != nil {
-			exit(fmt.Sprintf("You scored %d out of %d.", total_score, limit))
+		for key, option := range options_list {
+			options = append(options, huh.NewOption(option, key))
 		}
-		total_score += score
-	}
 
-	exit(fmt.Sprintf("\nYou scored %d out of %d.", total_score, limit))
+		formGroups[i] = huh.NewGroup(
+			huh.NewSelect[string]().
+				Title(question.Question).
+				Options(options...).
+				Value(&opt),
+		)
+
+		// Run the form for the current question
+		form := huh.NewForm(formGroups[i])
+		err := form.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		key := fmt.Sprintf("answer_%s_correct", opt)
+		if question.CorrectAnswers[key] == "true" {
+			total_score += 1
+		}
+	}
+	fmt.Printf("\nYou scored %d out of %d.", total_score, limit)
+
+	// for _, question := range questions {
+	// 	fmt.Println("Question: ", question.Question)
+	// 	get_options(question.Answers)
+	// 	score, err := check_answers_value(question.CorrectAnswers, timer)
+
+	// 	if err != nil {
+	// 		exit(fmt.Sprintf("You scored %d out of %d.", total_score, limit))
+	// 	}
+	// 	total_score += score
+	// }
 }
 
-func get_options(answers map[string]string) {
-	println("Enter the correct option: ")
+func get_options(answers map[string]string) map[string]string {
+	options := make(map[string]string)
 
 	for r := 'a'; r < 'g'; r++ {
 		key := fmt.Sprintf("answer_%c", r)
 		value := answers[key]
 		if value != "" {
-			fmt.Printf("%c) %s\n", r, value)
+			options[fmt.Sprintf("%c", r)] = value
 		}
 	}
+	return options
 }
 
 func check_answers_value(correct_answers map[string]string, timer *time.Timer) (int, error) {
 	answerCh := make(chan string)
 	fmt.Print("Pick an option: ")
-	var input string
 	score := 0
 
 	go func() {
+		var input string
 		fmt.Scanf("%s", &input)
-		if len(input) != 1 || !unicode.IsLetter(rune(input[0])) {
-			exit("Invalid input.")
-		}
 		answerCh <- input
 	}()
 

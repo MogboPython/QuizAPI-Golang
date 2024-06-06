@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
+	"time"
 )
 
 func get_questions_struct(responseData []byte) []QuizResponse {
@@ -76,5 +78,39 @@ func TestGetQuestionsStruct(t *testing.T) {
 		if result[i].Question != expected[i].Question {
 			t.Errorf("Mismatch at index %d. Expected: %+v, Got: %+v", i, expected[i], result[i])
 		}
+	}
+}
+
+// Mock input and simulate the timer
+func TestCheckAnswersValue(t *testing.T) {
+	// Create a correct answers map
+	correctAnswers := map[string]string{
+		"answer_a_correct": "true",
+		"answer_b_correct": "false",
+	}
+
+	// Create a timer
+	timer := time.NewTimer(5 * time.Second)
+
+	// Redirect input
+	input := "a\n"
+	oldStdin := os.Stdin
+	r, w, _ := os.Pipe()
+	w.Write([]byte(input))
+	w.Close()
+	os.Stdin = r
+	defer func() { os.Stdin = oldStdin }()
+
+	// Call the function
+	score, err := check_answers_value(correctAnswers, timer)
+	// Check for errors
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+
+	// Check the score
+	expectedScore := 1
+	if score != expectedScore {
+		t.Errorf("Expected score %d, got %d", expectedScore, score)
 	}
 }

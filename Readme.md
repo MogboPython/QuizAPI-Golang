@@ -53,7 +53,7 @@ go run main.go -a API_KEY [-c Category] [-d Difficulty] [-limit NumberOfQuestion
 ### Example
 
 ```sh
-go run main.go -a your_api_key -c Programming -d Easy -limit 5
+go run main.go -a your_api_key -c Programming -d Easy -limit 5 -time 60
 ```
 
 ## Acknowledgements
